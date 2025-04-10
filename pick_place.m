@@ -4,8 +4,10 @@ global joint_positions pick_trvec drop_trvec approaching_pick_trvec approaching_
 % Setting port number 
 Px100.DEVICENAME = 'COM3';  % COM Port
 
+
 % Initializing the robot 
 init_robot();
+Px100.homeconfig = homeConfiguration(Px100.robot_model);
 
 % Defining thresholds and limits for the robot's movement
 min_z_thresh = Px100.MIN_Z_THRESH;  % Minimum Z threshold is set to 0.02 m
@@ -13,13 +15,14 @@ movement_thresh = Px100.MOVEMENT_THRESH;  % Maximum movement distance is set to 
 
 
 % Define pick, drop and obstacle poses (You change it accordingly)
-pick_trvec = [0.15, 0.10, 0.05];  % Desired pick position
-drop_trvec = [0.15, -0.10, 0.05];  % Desired drop position
+pick_trvec = [0.15, 0.1, 0.05];  % Desired pick position
+drop_trvec = [0.15, -0.1, 0.1];  % Desired drop position
 obstacle_trvec = [0.15, 0.0, 0.05]; % Obstacle position (optional)
 
 % Defining lifting and approaching poses by adding vertical offset to the pick and drop poses
-approaching_pick_trvec = [0.15, 0.10, 0.1]; % Defining a waypoint above the pick pose to avoid hitting obstacle
-approaching_drop_trvec = [0.15, -0.10, 0.1]; % Defining a waypoint above the drop pose to avoid hitting obstacle
+approaching_pick_trvec = [0.15, 0.1, 0.1]; % Defining a waypoint above the pick pose to avoid hitting obstacle
+approaching_drop_trvec = [0.15, -0.1, 0.2]; % Defining a waypoint above the drop pose to avoid hitting obstacle
+    
 
 %% Reaching the Payload
 disp('Reaching the payload...');
@@ -46,21 +49,9 @@ while true
 
     % ----------------------------------------------/////      TODO       /////-------------------------------------------------------
 
-        distance = sqrt((current_trvec(1) - approaching_pick_trvec(1))^2 + (current_trvec(2) - approaching_pick_trvec(2))^2 + (current_trvec(3) - approaching_pick_trvec(3))^2);
-        num_waypoints = ceil(distance / 0.01);  % Set the step distance to 0.01, ensuring the step distance doesn't exceed the max allowable of 0.02. 
-        
-        % Interpolate the x, y, z coordinates between the start and end points
-        x_waypoints = linspace(current_trvec(1), approaching_pick_trvec(1), num_waypoints)';
-        y_waypoints = linspace(current_trvec(2), approaching_pick_trvec(2), num_waypoints)';
-        z_waypoints = linspace(current_trvec(3), approaching_pick_trvec(3), num_waypoints)';
-        
-        % Combining the x y z waypoints into a single matrix
-        waypoint_vector = [x_waypoints, y_waypoints, z_waypoints];
-        
-        % Initialize a matrix to store the joint configurations at each waypoint
-        joint_space_waypoints = zeros(num_waypoints, 4);
 
 
+    joint_space_waypoints = generateWaypoints(current_trvec, approaching_pick_trvec); 
     % Execute the trajectory from current_trvec[x,y,z] to the approaching_pick_trvec[x,y,z]
     executing_trajectory(joint_space_waypoints);
     
@@ -77,6 +68,7 @@ while true
     
 
 
+    joint_space_waypoints = generateWaypoints(approaching_pick_trvec, pick_trvec);
 
     % Execute the trajectory from approaching_pick_trvec[x,y,z] to the pick_trvec[x,y,z]
     executing_trajectory(joint_space_waypoints);
@@ -98,7 +90,7 @@ while true
     % ----------------------------------------------/////      TODO       /////-------------------------------------------------------
 
 
-
+    joint_space_waypoints = generateWaypoints(pick_trvec, approaching_pick_trvec);
     % Execute the trajectory from pick_trvec[x,y,z] to the approaching_pick_trvec[x,y,z]
     executing_trajectory(joint_space_waypoints);
 
@@ -121,6 +113,7 @@ while true
 
 
 
+    joint_space_waypoints = generateWaypoints(approaching_pick_trvec, approaching_drop_trvec);
 
     % Execute the trajectory from approaching_pick_trvec[x,y,z] to the approaching_drop_trvec[x,y,z]
     executing_trajectory(joint_space_waypoints);
@@ -137,6 +130,7 @@ while true
     % ----------------------------------------------/////      TODO       /////-------------------------------------------------------
 
 
+    joint_space_waypoints = generateWaypoints(approaching_drop_trvec, drop_trvec);
 
 
     % Execute the trajectory from approaching_drop_trvec[x,y,z] to the drop_trvec[x,y,z]
@@ -152,6 +146,8 @@ end
 %% Returning to Home Configuration
 disp('Returning to home configuration...');
 while true
+    % Get the home position of the robot
+        
     % Calculate the no of waypoints required considering the given
     % constraints. Use liner interpolation to plan the trajectory from drop_trvec[x,y,z] to the approaching_drop_trvec[x,y,z].
     % Use the function compute_aik.m from Step1 to compute the Inversekinematics to get the joint config of each and every
@@ -163,8 +159,7 @@ while true
 
     % ----------------------------------------------/////      TODO       /////-------------------------------------------------------
 
-
-
+    joint_space_waypoints = generateWaypoints(drop_trvec, approaching_drop_trvec);
 
     % Execute the trajectory from drop_trvec[x,y,z] to the approaching_drop_trvec[x,y,z]
     executing_trajectory(joint_space_waypoints);
@@ -179,16 +174,16 @@ while true
 
 
     % ----------------------------------------------/////      TODO       /////-------------------------------------------------------
+    home_trvec = [0.2398, 0, 0.2398];
 
 
-
-
-    % Execute the trajectory from approaching_drop_trvec[x,y,z] to the home_trvec[x,y,z]
-    executing_trajectory(joint_space_waypoints);
-    break; % Exiting the loop after reaching home configuration
-end
-
-disp("Task Performed") 
+        joint_space_waypoints = generateWaypoints(approaching_drop_trvec, home_trvec);
+        % Execute the trajectory from approaching_drop_trvec[x,y,z] to the home_trvec[x,y,z]
+        executing_trajectory(joint_space_waypoints);
+        break; % Exiting the loop after reaching home configuration
+    end
+    
+    disp("Task Performed") 
 
 %% Functions ( Don't change the given functions)
 
@@ -233,5 +228,30 @@ function T = get_exact_pose(trvec)
     T = eye(4);
     T(1:3, 1:3) = Rz; 
     T(1:3, 4) = [x; y; z]; 
+end
+
+function jsw = generateWaypoints(start_vec, end_vec)
+    % enforce movement of less 0.02 (prevent for all coordinates)
+    movement_thresh = 0.01;
+    % simple interpolation to calculate minimal number of waypoints for
+    % given threshold
+    no_of_waypoints = ceil(norm(end_vec - start_vec) / movement_thresh);
+    waypoints = linspace(0, 1, no_of_waypoints)';
+    % use interpolation to get proportional distance between points and
+    % store in list
+    cart_waypoints = (1 - waypoints) * start_vec + waypoints * end_vec;
+    
+    jsw = zeros(no_of_waypoints, 4);
+    T = eye(4);
+
+    % with list of waypoints get 4x4 matrix to input into compute_aik.m and
+    % pass returned values in joint_space_waypoints matrix
+    for i = 1 : no_of_waypoints
+        T = get_exact_pose(cart_waypoints(i, :));
+    
+        joint_angles = compute_aik(T);
+    
+        jsw(i, :) = joint_angles;
+    end
 end
 
