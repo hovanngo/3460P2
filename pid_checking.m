@@ -1,6 +1,6 @@
 % Code for PincherX100 to observe the actual position for different PID values
 global Px100;
-Px100.DEVICENAME = '/dev/ttyUSB0'; % COM port
+Px100.DEVICENAME = 'COM4'; % COM port
 % Initializing the robot 
 init_robot();
 Px100.MOVEMENT_THRESH = 1.0;
@@ -76,6 +76,9 @@ ylabel('Joint 1 Position (radians)');
 title(['Joint 1 Actual Position vs Time | Kp = ' num2str(Kp) ', Ki = ' num2str(Ki) ', Kd = ' num2str(Kd)]);
 legend('Actual Position', 'Target Position');
 grid on;
+xlim([0 4]);  % Limit x-axis from 0 to 4 seconds
+
+
 
 % Get and display the final joint position after the move
 joint_positions = get_joint_pos();
