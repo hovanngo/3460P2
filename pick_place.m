@@ -1,8 +1,8 @@
-% Code for PincherX100 to perform pick-and-place task
+% Code for PincherX100 to perform pick-and-place task DEMO
 global Px100;
 global joint_positions pick_trvec drop_trvec approaching_pick_trvec approaching_drop_trvec obstacle_trvec;
 % Setting port number 
-Px100.DEVICENAME = 'COM3';  % COM Port
+Px100.DEVICENAME = 'COM4';  % COM Port
 
 
 % Initializing the robot 
@@ -15,8 +15,8 @@ movement_thresh = Px100.MOVEMENT_THRESH;  % Maximum movement distance is set to 
 
 
 % Define pick, drop and obstacle poses (You change it accordingly)
-pick_trvec = [0.15, 0.1, 0.05];  % Desired pick position
-drop_trvec = [0.15, -0.1, 0.1];  % Desired drop position
+pick_trvec = [0.15, 0.10, 0.05];  % Desired pick position
+drop_trvec = [0.15, -0.10, 0.05];  % Desired drop position
 obstacle_trvec = [0.15, 0.0, 0.05]; % Obstacle position (optional)
 
 % Defining lifting and approaching poses by adding vertical offset to the pick and drop poses
